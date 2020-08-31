@@ -1,45 +1,22 @@
 package ru.netology.test;
 
 import com.codeborne.selenide.SelenideElement;
-import com.google.gson.Gson;
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.filter.log.LogDetail;
-import io.restassured.http.ContentType;
-import io.restassured.specification.RequestSpecification;
-import org.junit.jupiter.api.BeforeAll;
+import com.github.javafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.netology.data.UserData;
+import ru.netology.data.DataGenerator;
+import java.util.Locale;
 
+import static com.codeborne.selenide.Selectors.withText;
 import static com.codeborne.selenide.Selenide.*;
 import static com.codeborne.selenide.Condition.*;
-import static io.restassured.RestAssured.given;
+import static ru.netology.data.DataGenerator.newUser;
 
 public class AuthTest {
 
+    Faker faker = new Faker(new Locale("en"));
+
     SelenideElement form;
-
-    private static RequestSpecification requestSpec = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(9999)
-            .setAccept(ContentType.JSON)
-            .setContentType(ContentType.JSON)
-            .log(LogDetail.ALL)
-            .build();
-
-    @BeforeAll
-    static void setUpAll() {
-        Gson gson = new Gson();
-
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(gson.toJson(new UserData("vasya","password","active"))) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
 
     @BeforeEach
     void setUp() {
@@ -47,31 +24,38 @@ public class AuthTest {
         form = $(".form");
     }
 
-    @Test
-    void shouldLoginValidUser() {
-        form.$("[data-test-id=login] input").setValue("vasya");
-        form.$("[data-test-id=password] input").setValue("password");
-        form.$("button.button").click();
-        $("h2").shouldHave(exactText("Личный кабинет"));
+    void login(String login, String password) {
+        $("[data-test-id=login] input").setValue(login);
+        $("[data-test-id=password] input").setValue(password);
+        $("[data-test-id=action-login]").click();
     }
 
     @Test
+    public void shouldLoginValidUser() {
+        DataGenerator.UserInfo user = newUser( false);
+        login(user.getLogin(), user.getPassword());
+        $("h2").shouldHave(exactText("Личный кабинет"));
+    }
+
+
+     @Test
     void shouldNotLoginInvalidPassword() {
-        form.$("[data-test-id=login] input").setValue("vasya");
-        form.$("[data-test-id=password] input").setValue("pasword");
-        form.$("button.button").click();
-        $("[data-test-id=error-notification]").waitUntil(visible, 5000);
-        $("[data-test-id=error-notification]  .notification__title").shouldHave(exactText("Ошибка"));
-        $("[data-test-id=error-notification]  .notification__content").shouldHave(exactText("Ошибка! Неверно указан логин или пароль"));
+         DataGenerator.UserInfo user = newUser( false);
+         login(user.getLogin(), faker.internet().password());
+         $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
     }
 
     @Test
     void shouldNotLoginInvalidLogin() {
-        form.$("[data-test-id=login] input").setValue("test");
-        form.$("[data-test-id=password] input").setValue("password");
-        form.$("button.button").click();
-        $("[data-test-id=error-notification]").waitUntil(visible, 5000);
-        $("[data-test-id=error-notification]  .notification__title").shouldHave(exactText("Ошибка"));
-        $("[data-test-id=error-notification]  .notification__content").shouldHave(exactText("Ошибка! Неверно указан логин или пароль"));
+        DataGenerator.UserInfo user = newUser( false);
+        login(faker.name().username(), user.getPassword());
+        $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
+    }
+
+    @Test
+    public void shouldNotLoginBlockedUser() {
+        DataGenerator.UserInfo user = newUser( true);
+        login(user.getLogin(), user.getPassword());
+        $(withText("Пользователь заблокирован")).waitUntil(visible, 5000);
     }
 }
