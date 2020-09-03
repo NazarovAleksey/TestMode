@@ -23,8 +23,9 @@ public class DataGenerator {
         private String status;
     }
 
+    private static final Faker faker = new Faker(new Locale("en"));
+
     public static UserInfo getUserInfo(boolean isBlocked) {
-        Faker faker = new Faker(new Locale("en"));
         return new UserInfo(
                 faker.name().username(),
                 faker.internet().password(),
@@ -54,5 +55,13 @@ public class DataGenerator {
         UserInfo user = getUserInfo(isBlocked);
         setUpAll(user);
         return user;
+    }
+
+    public static String getBadLogin(){
+        return faker.name().username();
+    }
+
+    public static String getBadPassword(){
+        return faker.internet().password();
     }
 }

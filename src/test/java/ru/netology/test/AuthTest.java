@@ -1,20 +1,18 @@
 package ru.netology.test;
 
 import com.codeborne.selenide.SelenideElement;
-import com.github.javafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.netology.data.DataGenerator;
-import java.util.Locale;
 
 import static com.codeborne.selenide.Selectors.withText;
 import static com.codeborne.selenide.Selenide.*;
 import static com.codeborne.selenide.Condition.*;
 import static ru.netology.data.DataGenerator.newUser;
+import static ru.netology.data.DataGenerator.getBadLogin;
+import static ru.netology.data.DataGenerator.getBadPassword;
 
 public class AuthTest {
-
-    Faker faker = new Faker(new Locale("en"));
 
     SelenideElement form;
 
@@ -41,14 +39,14 @@ public class AuthTest {
      @Test
     void shouldNotLoginInvalidPassword() {
          DataGenerator.UserInfo user = newUser( false);
-         login(user.getLogin(), faker.internet().password());
+         login(user.getLogin(), getBadPassword());
          $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
     }
 
     @Test
     void shouldNotLoginInvalidLogin() {
         DataGenerator.UserInfo user = newUser( false);
-        login(faker.name().username(), user.getPassword());
+        login(getBadLogin(), user.getPassword());
         $(withText("Неверно указан логин или пароль")).waitUntil(visible, 5000);
     }
 
